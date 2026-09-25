@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Apollo Hospitals Visakhapatnam — Cardiac Risk Assessment</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🫀</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --teal:#00697f; --teal-dark:#034a5a; --teal-deep:#023340; --flame:#ffb703; --flame-dark:#e0930a;
+  --red:#b3261e; --amber:#c17a00; --green:#1f7a4c;
+  --ink:#132227; --muted:#5a6d73; --line:#dbe6e8; --bg:#eef4f5; --card:#ffffff;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--bg:#0d1416;--card:#152023;--ink:#e7f0f1;--muted:#93a7ac;--line:#233234}
+}
+:root[data-theme="dark"]{--bg:#0d1416;--card:#152023;--ink:#e7f0f1;--muted:#93a7ac;--line:#233234}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+     background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5}
+
+/* ---------- Header ---------- */
+header{background:var(--teal-deep);color:#fff;
+       padding:calc(12px + env(safe-area-inset-top,0px)) 22px 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+       border-bottom:3px solid var(--flame)}
+header .brand{display:flex;align-items:center;gap:12px}
+header .brand img{height:40px;display:block;background:#fff;border-radius:8px;padding:3px}
+header h1{margin:0;font-size:17px;font-weight:700;letter-spacing:.2px}
+header p{margin:2px 0 0;font-size:11.5px;opacity:.8}
+header .who{font-size:12.5px;background:rgba(255,255,255,.1);padding:6px 8px 6px 14px;border-radius:99px;display:flex;gap:10px;align-items:center;border:1px solid rgba(255,255,255,.18)}
+header .who button{background:var(--flame);color:var(--teal-deep);border:none;padding:5px 12px;border-radius:99px;font-size:12px;font-weight:700;cursor:pointer}
+
+.wrap{max-width:1180px;margin:0 auto;padding:20px 22px 60px}
+
+/* ---------- Tabs ---------- */
+.tabs{display:flex;gap:4px;margin:0 0 18px;flex-wrap:wrap;border-bottom:2px solid var(--line)}
+.tab{padding:10px 4px;margin-right:22px;background:none;border:none;border-bottom:3px solid transparent;
+     cursor:pointer;font-weight:600;font-size:13.5px;color:var(--muted);letter-spacing:.2px}
+.tab.active{color:var(--teal-dark);border-bottom-color:var(--flame)}
+
+.grid{display:grid;grid-template-columns:1.2fr .9fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+/* card with category accent bar instead of uniform shadow */
+.card{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--teal);
+      border-radius:4px;padding:16px 18px;margin-bottom:14px}
+.card.acc-amber{border-left-color:var(--flame)}
+.card h2{margin:0 0 3px;font-size:13.5px;font-weight:700;color:var(--teal-dark)}
+.card .sub{margin:0 0 12px;font-size:12px;color:var(--muted)}
+
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+@media(max-width:600px){.row{grid-template-columns:1fr}}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px}
+input,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:5px;
+     font-size:13.5px;background:var(--card);color:var(--ink)}
+input:focus,select:focus{outline:2px solid var(--teal);outline-offset:1px}
+.field{margin-bottom:10px}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:5px 12px;margin-bottom:8px}
+@media(max-width:600px){.checks{grid-template-columns:1fr}}
+.chk{display:flex;align-items:center;gap:7px;font-size:13px;padding:5px 6px;border-radius:5px}
+.chk input{width:15px;height:15px;accent-color:var(--teal)}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+button{font-family:inherit;font-size:13.5px;font-weight:600;padding:9px 18px;border-radius:5px;
+       border:1px solid var(--teal);background:var(--teal);color:#fff;cursor:pointer}
+button.ghost{background:transparent;color:var(--teal-dark)}
+button.flame{background:var(--flame);border-color:var(--flame);color:var(--teal-deep)}
+button:hover{filter:brightness(.95)}
+button:disabled{opacity:.5;cursor:not-allowed}
+
+.result{border-radius:4px;padding:18px;color:#fff;text-align:center;margin-bottom:12px;border-left:5px solid rgba(0,0,0,.2)}
+.result .pct{font-size:38px;font-weight:700;margin:2px 0}
+.result .band{font-size:14px;font-weight:700;letter-spacing:.3px}
+.result .note{font-size:12px;opacity:.95;margin-top:4px}
+.b-low{background:var(--green)} .b-mod{background:var(--amber)} .b-high{background:var(--red)} .b-idle{background:#8195a8}
+.pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;color:#fff}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl-wrap{overflow-x:auto}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:var(--bg);color:var(--teal-dark);font-size:10.5px;text-transform:uppercase}
+.err{background:#fdeaea;border:1px solid #f5c2c2;color:#a01818;padding:9px 11px;border-radius:5px;font-size:12.5px;margin-bottom:10px;display:none}
+.disc{font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin-top:6px}
+.hidden{display:none !important}
+
+/* ---------- Login / PIN screens ---------- */
+.center-screen{max-width:380px;margin:50px auto}
+.center-screen .card{text-align:center;border-left:none;border-top:3px solid var(--flame)}
+.logo-lg{height:64px;margin:0 auto 12px;display:block}
+.rolebtn{display:block;width:100%;margin-bottom:8px;padding:12px;text-align:left}
+.rolebtn small{display:block;font-weight:400;opacity:.85;font-size:11.5px}
+.pin-dots{display:flex;justify-content:center;gap:12px;margin:18px 0}
+.pin-dots span{width:14px;height:14px;border-radius:50%;border:2px solid var(--teal);display:block}
+.pin-dots span.filled{background:var(--teal)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:230px;margin:0 auto}
+.pin-pad button{padding:14px 0;font-size:17px;background:var(--bg);color:var(--ink);border:1px solid var(--line)}
+.pin-pad button.wide{grid-column:span 1;font-size:12.5px;background:transparent;border:none;color:var(--muted)}
+.lock-icon{width:34px;height:34px;border-radius:50%;background:var(--teal-deep);color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:16px}
+
+.stat{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--teal);border-radius:4px;padding:12px 14px;flex:1;min-width:120px}
+.stat b{display:block;font-size:22px;color:var(--teal-dark)}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+@media print{
+  header,.tabs,.btnrow,.noprint,.doctor-ribbon{display:none !important}
+  .grid{grid-template-columns:1fr}
+  body{background:#fff}
+  .card{border:1px solid #ccc}
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+<!-- LOGIN: choose role -->
+<div id="loginView" class="wrap center-screen">
+  <div class="card">
+    <img class="logo-lg" src="data:image/png;base64,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" alt="Apollo Hospitals Visakhapatnam">
+    <h1 style="margin:0 0 2px;font-size:18px">Apollo Hospitals Visakhapatnam</h1>
+    <p class="sub" style="margin-bottom:18px">Cardiac Risk Assessment Portal</p>
+    <button class="rolebtn" onclick="chooseRole('doctor')">Continue as Doctor / Clinician<small>PIN required — full patient database access</small></button>
+    <button class="rolebtn ghost" onclick="chooseRole('patient')">Continue as Patient<small>View your own assessment reports</small></button>
+    <div style="margin:18px auto 8px;padding-top:16px;border-top:1px solid var(--line)">
+      <p class="sub" style="margin-bottom:8px">Scan to open this Cardiac Risk Assessment page</p>
+      <div id="pageQr" style="display:flex;justify-content:center"></div>
+      <p class="disc" id="qrNote" style="margin-top:8px">QR code uses the current page address. For access on other devices, host this HTML file on an approved secure web location.</p>
+    </div>
+    <p class="disc" style="text-align:left;margin-top:16px">Demo access control only, not on Apollo servers. Records are stored locally in this browser by default; a clinician can turn on GitHub Sync (Doctor Menu) so entries from every device are combined into one shared database.</p>
+  </div>
+</div>
+
+<!-- PIN GATE: doctor/clinician only -->
+<div id="pinView" class="wrap center-screen hidden">
+  <div class="card">
+    <div class="lock-icon">&#128274;</div>
+    <h1 style="margin:0 0 2px;font-size:16px">Clinician Login</h1>
+    <p class="sub" id="pinSub">Enter your 4-digit PIN to access the patient database.</p>
+    <div class="field" style="max-width:230px;margin:14px auto 6px;text-align:left"><label for="pinInput">Doctor PIN</label><input id="pinInput" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="Enter 4-digit PIN" oninput="pinTyped(this.value)"></div><div class="pin-dots" id="pinDots"><span></span><span></span><span></span><span></span></div>
+    <div class="err" id="pinErr" style="text-align:left"></div>
+    <div class="pin-pad" id="pinPad"></div>
+    <button class="ghost" style="margin-top:8px" onclick="backToLogin()">&larr; Back</button>
+  </div>
+</div>
+
+<div id="appView" class="hidden">
+<header>
+  <div class="brand">
+    <img src="data:image/png;base64,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" alt="Apollo Hospitals">
+    <div><h1>Cardiac Risk Assessment</h1><p>Visakhapatnam &nbsp;·&nbsp; ASCVD / WHO South Asia validated risk model</p></div>
+  </div>
+  <div class="who">Signed in as <b id="whoLabel">—</b> <button onclick="logout()">Switch</button></div>
+</header>
+
+<div class="wrap">
+  <div class="tabs" id="tabBar"></div>
+
+  <details class="doctor-ribbon hidden" id="doctorRibbon">
+    <summary>Doctor Menu <span style="font-size:12px;font-weight:500;color:var(--muted)">Assessment &amp; Patient Database</span></summary>
+    <div class="ribbon-body">
+      <button class="ribbon-btn active" id="doctorNavAssess" onclick="showTab('assess')">➕ New Assessment</button>
+      <button class="ribbon-btn ghost" id="doctorNavDb" onclick="showTab('db')">▣ Patient Database</button>
+      <button class="ribbon-btn ghost" id="doctorNavSync" onclick="openGhSettings()">⚙ GitHub Sync</button>
+    </div>
+  </details>
+
+  <!-- ASSESSMENT TAB -->
+  <div id="tab-assess">
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h2>Patient Details</h2>
+          <p class="sub">Fields marked * are required. Enter lipid values for the full ASCVD equation, or leave blank for the WHO South Asia non-laboratory estimate.</p>
+          <div class="row">
+            <div class="field"><label>Full name *</label><input id="p_name" placeholder="Patient name"></div>
+            <div class="field"><label>Pincode *</label><input id="p_pincode" placeholder="6-digit pincode" maxlength="6" inputmode="numeric" autocomplete="postal-code"></div>
+    <div class="field"><label>Mobile Number *</label><input type="tel" id="p_mobile" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric" autocomplete="tel"></div>
+    
+            <div class="field"><label>Age (years) *</label><input type="number" id="p_age" min="20" max="90" oninput="updateBmiPreview()"></div>
+            <div class="field"><label>Sex *</label><select id="p_sex" onchange="updateBmiPreview()"><option value="">Select</option><option value="male">Male</option><option value="female">Female</option></select></div>
+            <div class="field"><label>Height (cm) *</label><input type="number" id="p_ht" min="120" max="220" oninput="updateBmiPreview()"></div>
+            <div class="field"><label>Weight (kg) *</label><input type="number" id="p_wt" min="25" max="200" oninput="updateBmiPreview()"></div><div class="field"><label>Calculated BMI</label><input id="p_bmi" readonly placeholder="Auto-calculated"></div>
+            <div class="field"><label>Known hypertension (BP)? *</label><select id="p_htn"><option value="0">No</option><option value="1">Yes</option></select></div>
+            <div class="field"><label>Systolic BP value (mmHg) *</label><input type="number" id="p_sbp" min="80" max="240"></div>
+            <div class="field"><label>Diabetes? *</label><select id="p_dm"><option value="0">No</option><option value="1">Yes</option></select></div>
+            <div class="field"><label>Family history of heart disease? *</label><select id="p_fh"><option value="0">No</option><option value="1">Yes</option></select></div>
+          </div>
+        </div>
+        <div class="card acc-amber">
+          <h2>Habits</h2>
+          <div class="checks">
+            <label class="chk"><input type="checkbox" id="p_smoke"> Smoking / tobacco use</label>
+            <label class="chk"><input type="checkbox" id="p_alcohol"> Regular alcohol use</label>
+            <label class="chk"><input type="checkbox" id="p_inactive"> Sedentary (&lt;150 min activity/week)</label>
+            <label class="chk"><input type="checkbox" id="p_known"> Known established heart disease</label>
+          </div>
+          <div class="err" id="p_err"></div>
+          <div class="btnrow">
+            <button onclick="runAssessment()">Calculate Risk</button>
+            <button class="ghost" onclick="clearForm()">Clear</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="result b-idle" id="p_result"><div class="band">Awaiting entry</div><div class="pct">—</div><div class="note">10-year cardiovascular risk</div></div>
+        <div class="card" id="p_action"><p class="sub">Recommendations appear here after calculation.</p></div><div class="card acc-amber"><h2>Appointments & Emergency</h2><p class="sub"><b>Health City:</b> <a href="tel:08912867777">0891-2867777</a> | <b>Ramnagar:</b> <a href="tel:08912727272">0891-2727272</a><br><b style="color:var(--red)">Emergency:</b> <a href="tel:1066">1066</a></p></div>
+      </div>
+    </div>
+    <p class="disc">WHO/ISH-style non-laboratory risk approximation using age, sex, BMI, blood pressure, diabetes, smoking and family history — no cholesterol or other lab values required. Classification: Low &lt;10%, Moderate 10–19.9%, High ≥20% ten-year risk. This tool supports, but does not replace, clinical judgement.</p>
+  </div>
+
+  <!-- DATABASE TAB (doctor only) -->
+  <div id="tab-db" class="hidden">
+    <div class="stats">
+      <div class="stat"><b id="s_total">0</b>Total assessments</div>
+      <div class="stat"><b id="s_low" style="color:var(--green)">0</b>Low risk</div>
+      <div class="stat"><b id="s_mod" style="color:var(--amber)">0</b>Moderate risk</div>
+      <div class="stat"><b id="s_high" style="color:var(--red)">0</b>High risk</div>
+    </div>
+    <div class="card">
+      <h2>Patient Database</h2>
+      <p class="sub">All assessments recorded in this browser. Access restricted to PIN-verified clinicians.</p>
+      <p class="disc" id="ghSyncNote">GitHub Sync not configured — records are saved on this device only. Open Doctor Menu → GitHub Sync to enable shared storage.</p>
+      <div class="btnrow" style="margin-top:0;margin-bottom:10px">
+        <input id="dbSearch" placeholder="Search by Name or Mobile Number" style="max-width:300px" oninput="renderDb()">
+        <button class="flame" onclick="exportExcel()">Export to Excel</button>
+        <button class="ghost" onclick="pullFromGitHub(true)">⟳ Sync Now</button>
+        <button class="ghost" onclick="pushAllLocalToGitHub()">⬆ Push This Device's Records</button>
+      </div>
+      <div class="tbl-wrap"><table id="dbTable"><thead><tr>
+        <th>Date</th><th>Name</th><th>Mobile</th><th>Pincode</th><th>Age</th><th>Sex</th><th>SBP</th><th>Risk %</th><th>Band</th><th></th>
+      </tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- PATIENT PORTAL TAB -->
+  <div id="tab-portal" class="hidden">
+    <div class="card">
+      <h2>Find My Reports</h2>
+      <p class="sub">Enter the name or mobile number used at assessment to view your reports.</p>
+      <div class="btnrow" style="margin-top:0"><input id="portalSearch" placeholder="Your name or mobile number" style="max-width:300px"><button onclick="renderPortal()">Find</button></div>
+    </div>
+    <div id="portalResults"></div>
+  </div>
+
+  <!-- PRINTABLE REPORT (hidden, filled on demand) -->
+  <div id="reportView" class="hidden"></div>
+
+  <!-- GITHUB SYNC SETTINGS (doctor only, hidden, filled on demand) -->
+  <div id="ghSettingsView" class="hidden noprint">
+    <div class="card" style="max-width:640px;margin:0 auto">
+      <h2>GitHub Sync Settings</h2>
+      <p class="sub">Connect this app to the GitHub repository hosting this page, so every assessment entered from any phone — via the login QR code — is committed back into this HTML file on the main branch, and every doctor sees the same shared patient database.</p>
+      <div class="row">
+        <div class="field"><label>Repository owner / organisation</label><input id="gh_owner" placeholder="e.g. apollo-vizag"></div>
+        <div class="field"><label>Repository name</label><input id="gh_repo" placeholder="e.g. cardiac-risk-app"></div>
+        <div class="field"><label>Branch</label><input id="gh_branch" placeholder="main"></div>
+        <div class="field"><label>File path in repo</label><input id="gh_path" placeholder="Apollo_Vizag_Cardiac_Risk_Assessment_V15.html"></div>
+      </div>
+      <div class="field"><label>Personal Access Token (fine-grained, this repo only, Contents: Read &amp; Write)</label><input id="gh_token" type="password" placeholder="github_pat_..." autocomplete="off"></div>
+      <div class="err" id="gh_err"></div>
+      <p class="disc" id="gh_status">Not connected — records are saved on this device only until sync is configured.</p>
+      <div class="btnrow">
+        <button onclick="saveGhConfig()">Save &amp; Connect</button>
+        <button class="ghost" onclick="pullFromGitHub(true)">Pull Latest Now</button>
+        <button class="ghost" onclick="pushAllLocalToGitHub()">Push This Device's Records</button>
+        <button class="ghost" onclick="closeGhSettings()">Close</button>
+      </div>
+      <p class="disc" style="margin-top:10px">The token is stored only in this browser's local storage and is sent directly from the browser to api.github.com — it is never sent to Apollo or any other server. Use a token scoped to only this one repository with Contents read/write, nothing else.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script type="application/json" id="patientDataStore">[]</script>
+
+<script>
+const $=id=>document.getElementById(id);
+const val=id=>{const v=$(id).value;return v===''?null:parseFloat(v);};
+const chk=id=>$(id).checked;
+let role=null, lastResult=null;
+let pinEntry='', pinAttempts=0;
+const DEFAULT_DOCTOR_PIN='1066';
+function getDoctorPin(){return localStorage.getItem('apollo_doctor_pin')||DEFAULT_DOCTOR_PIN;}
+const STORE_KEY='apollo_cvd_patients';
+
+function getDb(){try{return JSON.parse(localStorage.getItem(STORE_KEY)||'[]');}catch(e){return [];}}
+function setDb(arr){try{localStorage.setItem(STORE_KEY,JSON.stringify(arr));}catch(e){}}
+
+/* ---------- GitHub Sync ----------
+   Keeps a shared "master copy" of the patient database inside THIS HTML file,
+   in the <script id="patientDataStore"> block near the end of <body>.
+   On save/delete, the doctor's device fetches the latest version of the file
+   from GitHub, merges in the change, and commits it back to the branch —
+   so every phone that opens the page (e.g. via the login QR code) and syncs
+   ends up sharing the same records. */
+const GH_KEY='apollo_gh_config';
+
+/* ---------- Built-in GitHub Sync ----------
+   Fill these in ONCE and publish this file to your repo. Every visitor —
+   doctor AND patient — will then sync automatically, with no per-device
+   setup, because the config travels inside the page itself.
+
+   SECURITY NOTE: this page is public (GitHub Pages), so anyone can view
+   its source and read the token below. Use a fine-grained token scoped to
+   ONLY this repository with ONLY "Contents: Read and write" permission —
+   nothing else — and rotate it every so often. Do not reuse this token
+   for anything else. */
+const PUBLIC_GH_SYNC = {
+  owner:'sudhamakrishnas',
+  repo:'Cardiac-Risk-Assessment',
+  branch:'main',
+  path:'index.html',   // <-- must exactly match this file's path in the repo (root file on GitHub Pages is usually index.html)
+  token:''              // <-- paste a fine-grained PAT here (Contents: Read & Write, this repo only), then re-publish
+};
+
+function getGhConfig(){
+  let local={};
+  try{ local=JSON.parse(localStorage.getItem(GH_KEY)||'null')||{}; }catch(e){ local={}; }
+  // A device can still override via Doctor Menu -> GitHub Sync (e.g. for testing);
+  // otherwise every visitor falls back to the built-in config above.
+  return {
+    owner: local.owner || PUBLIC_GH_SYNC.owner,
+    repo: local.repo || PUBLIC_GH_SYNC.repo,
+    branch: local.branch || PUBLIC_GH_SYNC.branch || 'main',
+    path: local.path || PUBLIC_GH_SYNC.path,
+    token: local.token || PUBLIC_GH_SYNC.token,
+    lastSync: local.lastSync || ''
+  };
+}
+function setGhConfig(c){ try{localStorage.setItem(GH_KEY,JSON.stringify(c));}catch(e){} }
+function ghConfigured(){ const c=getGhConfig(); return !!(c.owner&&c.repo&&c.path&&c.token); }
+
+function seedFromEmbedded(){
+  try{
+    const el=document.getElementById('patientDataStore');
+    if(!el) return;
+    const embedded=JSON.parse(el.textContent||'[]');
+    if(!embedded.length) return;
+    const local=getDb();
+    const map={};
+    embedded.forEach(r=>{ if(r&&r.id) map[r.id]=r; });
+    local.forEach(r=>{ if(r&&r.id) map[r.id]=r; }); // local copies win if newer/unsynced
+    const merged=Object.values(map).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    setDb(merged);
+  }catch(e){ /* ignore malformed embedded data */ }
+}
+
+function updateGhSyncNote(){
+  const note=$('ghSyncNote'); if(!note) return;
+  const c=getGhConfig();
+  note.textContent = ghConfigured()
+    ? 'GitHub Sync connected to '+c.owner+'/'+c.repo+' ('+(c.branch||'main')+'). Last sync: '+(c.lastSync||'never')+'.'
+    : 'GitHub Sync not configured — records are saved on this device only. Open Doctor Menu → GitHub Sync to enable shared storage.';
+}
+
+function openGhSettings(){
+  const c=getGhConfig();
+  $('gh_owner').value=c.owner||'';
+  $('gh_repo').value=c.repo||'';
+  $('gh_branch').value=c.branch||'main';
+  $('gh_path').value=c.path||decodeURIComponent((location.pathname.split('/').pop()||''));
+  $('gh_token').value=c.token||'';
+  $('gh_err').style.display='none';
+  $('gh_status').textContent = ghConfigured()
+    ? ('Connected to '+c.owner+'/'+c.repo+' ('+(c.branch||'main')+'). Last sync: '+(c.lastSync||'never'))
+    : 'Not connected — records are saved on this device only until sync is configured.';
+  document.querySelectorAll('.wrap > div, .wrap > details').forEach(d=>{ if(d.id!=='ghSettingsView') d.classList.add('hidden'); });
+  $('ghSettingsView').classList.remove('hidden');
+}
+function closeGhSettings(){
+  $('ghSettingsView').classList.add('hidden');
+  $('doctorRibbon').classList.toggle('hidden', role!=='doctor');
+  $('tabBar').classList.toggle('hidden', role==='doctor');
+  showTab('db');
+}
+async function saveGhConfig(){
+  const c={owner:$('gh_owner').value.trim(),repo:$('gh_repo').value.trim(),branch:($('gh_branch').value.trim()||'main'),
+    path:$('gh_path').value.trim().replace(/^\/+/,''),token:$('gh_token').value.trim()};
+  const err=$('gh_err');
+  if(!c.owner||!c.repo||!c.path||!c.token){
+    err.textContent='Please fill in owner, repo, file path and token.'; err.style.display='block'; return;
+  }
+  setGhConfig(c);
+  err.style.display='block'; err.style.background='#eef4f5'; err.style.color='var(--muted)'; err.style.border='1px solid var(--line)';
+  err.textContent='Testing connection…';
+  try{
+    await ghGetFile();
+    c.lastSync=new Date().toLocaleString(); setGhConfig(c);
+    err.style.display='none';
+    $('gh_status').textContent='Connected to '+c.owner+'/'+c.repo+' ('+c.branch+'). Last sync: '+c.lastSync;
+    updateGhSyncNote();
+    await pullFromGitHub(false);
+  }catch(e){
+    err.style.background='#fdeaea'; err.style.color='#a01818'; err.style.border='1px solid #f5c2c2';
+    err.textContent='Could not connect: '+e.message+'. Check the owner, repo, file path and branch, and that the token has Contents read/write access to this repository.';
+  }
+}
+
+function b64EncodeUnicode(str){ return btoa(unescape(encodeURIComponent(str))); }
+function b64DecodeUnicode(str){ return decodeURIComponent(escape(atob(str))); }
+
+async function ghGetFile(){
+  const c=getGhConfig();
+  const url='https://api.github.com/repos/'+encodeURIComponent(c.owner)+'/'+encodeURIComponent(c.repo)+'/contents/'+encodeURI(c.path)+'?ref='+encodeURIComponent(c.branch||'main')+'&_='+Date.now();
+  const res=await fetch(url,{headers:{'Authorization':'Bearer '+c.token,'Accept':'application/vnd.github+json'}});
+  if(!res.ok){ const t=await res.text().catch(()=>''); const err=new Error('GitHub GET failed ('+res.status+') '+t.slice(0,150)); err.status=res.status; throw err; }
+  const data=await res.json();
+  return {sha:data.sha, text:b64DecodeUnicode((data.content||'').replace(/\n/g,''))};
+}
+async function ghPutFile(text, sha, message){
+  const c=getGhConfig();
+  const url='https://api.github.com/repos/'+encodeURIComponent(c.owner)+'/'+encodeURIComponent(c.repo)+'/contents/'+encodeURI(c.path);
+  const res=await fetch(url,{method:'PUT',headers:{'Authorization':'Bearer '+c.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
+    body:JSON.stringify({message:message||'Update patient records', content:b64EncodeUnicode(text), sha:sha, branch:c.branch||'main'})});
+  if(!res.ok){ const t=await res.text().catch(()=>''); const err=new Error('GitHub PUT failed ('+res.status+') '+t.slice(0,200)); err.status=res.status; throw err; }
+  return res.json();
+}
+function extractEmbedded(text){
+  const re=/<script type="application\/json" id="patientDataStore">([\s\S]*?)<\/script>/;
+  const m=text.match(re);
+  if(!m) return [];
+  try{ return JSON.parse(m[1]||'[]'); }catch(e){ return []; }
+}
+function replaceEmbedded(text, records){
+  const block='<script type="application/json" id="patientDataStore">'+JSON.stringify(records)+'<\/script>';
+  const re=/<script type="application\/json" id="patientDataStore">[\s\S]*?<\/script>/;
+  if(re.test(text)) return text.replace(re, block);
+  return text.replace('</body>', block+'\n</body>');
+}
+
+async function pullFromGitHub(showAlert){
+  if(!ghConfigured()){ if(showAlert) alert('Set up GitHub Sync first: Doctor Menu → GitHub Sync.'); return; }
+  try{
+    const {text}=await ghGetFile();
+    const remote=extractEmbedded(text);
+    const local=getDb();
+    const map={};
+    remote.forEach(r=>{ if(r&&r.id) map[r.id]=r; });
+    local.forEach(r=>{ if(r&&r.id && !map[r.id]) map[r.id]=r; });
+    const merged=Object.values(map).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    setDb(merged);
+    const c=getGhConfig(); c.lastSync=new Date().toLocaleString(); setGhConfig(c);
+    updateGhSyncNote();
+    if($('tab-db') && !$('tab-db').classList.contains('hidden')) renderDb();
+    if(showAlert) alert('Pulled the latest shared records from GitHub. Total records: '+merged.length);
+  }catch(e){
+    if(showAlert) alert('Pull failed: '+e.message);
+  }
+}
+async function pushRecordToGitHub(record, attempt){
+  attempt=attempt||1;
+  if(!ghConfigured()) return;
+  try{
+    const {sha,text}=await ghGetFile();
+    const remote=extractEmbedded(text);
+    const map={}; remote.forEach(r=>{ if(r&&r.id) map[r.id]=r; });
+    map[record.id]=record;
+    const merged=Object.values(map).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const newText=replaceEmbedded(text, merged);
+    await ghPutFile(newText, sha, 'Add assessment: '+(record.name||'patient')+' ('+record.date+')');
+    setDb(merged);
+    const c=getGhConfig(); c.lastSync=new Date().toLocaleString(); setGhConfig(c);
+    updateGhSyncNote();
+    if($('tab-db') && !$('tab-db').classList.contains('hidden')) renderDb();
+  }catch(e){
+    if(e.status===409 && attempt<3){ return pushRecordToGitHub(record, attempt+1); }
+    console.error('GitHub sync failed', e);
+    updateGhSyncNote();
+  }
+}
+/* Uploads every record currently sitting in THIS device's local storage —
+   including ones saved before GitHub Sync was ever configured — by merging
+   them into the remote copy and committing. Use this once per device after
+   first connecting, or any time "Sync Now" isn't showing records you know
+   you entered on this phone. */
+async function pushAllLocalToGitHub(attempt){
+  attempt=attempt||1;
+  if(!ghConfigured()){ alert('Set up GitHub Sync first: Doctor Menu → GitHub Sync.'); return; }
+  const local=getDb();
+  if(!local.length){ alert('No records on this device to push.'); return; }
+  try{
+    const {sha,text}=await ghGetFile();
+    const remote=extractEmbedded(text);
+    const map={};
+    remote.forEach(r=>{ if(r&&r.id) map[r.id]=r; });
+    local.forEach(r=>{ if(r&&r.id) map[r.id]=r; }); // this device's copies win on conflict
+    const merged=Object.values(map).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const newText=replaceEmbedded(text, merged);
+    await ghPutFile(newText, sha, 'Push local records from this device ('+local.length+' record(s))');
+    setDb(merged);
+    const c=getGhConfig(); c.lastSync=new Date().toLocaleString(); setGhConfig(c);
+    updateGhSyncNote();
+    if($('tab-db') && !$('tab-db').classList.contains('hidden')) renderDb();
+    alert('Pushed. GitHub now has '+merged.length+' total record(s).');
+  }catch(e){
+    if(e.status===409 && attempt<3){ return pushAllLocalToGitHub(attempt+1); }
+    alert('Push failed: '+e.message);
+  }
+}
+async function pushDeleteToGitHub(id, attempt){
+  attempt=attempt||1;
+  if(!ghConfigured()) return;
+  try{
+    const {sha,text}=await ghGetFile();
+    const remote=extractEmbedded(text);
+    const merged=remote.filter(r=>r.id!==id);
+    const newText=replaceEmbedded(text, merged);
+    await ghPutFile(newText, sha, 'Delete record '+id);
+    setDb(merged);
+    const c=getGhConfig(); c.lastSync=new Date().toLocaleString(); setGhConfig(c);
+    updateGhSyncNote();
+    if($('tab-db') && !$('tab-db').classList.contains('hidden')) renderDb();
+  }catch(e){
+    if(e.status===409 && attempt<3){ return pushDeleteToGitHub(id, attempt+1); }
+    console.error('GitHub delete sync failed', e);
+  }
+}
+
+/* ---------- Role selection + PIN gate ---------- */
+function chooseRole(r){
+  if(r==='patient'){ enterApp('patient'); return; }
+  $('loginView').classList.add('hidden');
+  $('pinView').classList.remove('hidden');
+  pinEntry=''; pinAttempts=0;
+  $('pinErr').style.display='none';
+  buildPinPad();
+  updatePinDots();
+}
+function backToLogin(){
+  $('pinView').classList.add('hidden');
+  $('loginView').classList.remove('hidden');
+}
+function buildPinPad(){
+  const keys=['1','2','3','4','5','6','7','8','9','','0','del'];
+  $('pinPad').innerHTML = keys.map(k=>{
+    if(k==='') return '<span></span>';
+    if(k==='del') return '<button class="wide" onclick="pinKey(\'del\')">Clear</button>';
+    return '<button onclick="pinKey(\''+k+'\')">'+k+'</button>';
+  }).join('');
+}
+function updatePinDots(){
+  document.querySelectorAll('#pinDots span').forEach((s,i)=> s.classList.toggle('filled', i<pinEntry.length));
+}
+function pinTyped(v){pinEntry=(v||'').replace(/\D/g,'').slice(0,4);$('pinInput').value=pinEntry;updatePinDots();if(pinEntry.length===4) verifyPin();}
+function verifyPin(){setTimeout(()=>{if(pinEntry===getDoctorPin()){enterApp('doctor');}else{pinAttempts++;$('pinErr').style.display='block';$('pinErr').textContent=pinAttempts>=3?'Too many incorrect attempts. Please verify your PIN with hospital IT.':'Incorrect PIN. Attempt '+pinAttempts+' of 3.';pinEntry='';$('pinInput').value='';updatePinDots();if(pinAttempts>=3){document.querySelectorAll('#pinPad button').forEach(b=>b.disabled=true);$('pinInput').disabled=true;}}},150);}
+function pinKey(k){
+  if(k==='del'){ pinEntry=''; if($('pinInput')) $('pinInput').value=''; updatePinDots(); return; }
+  if(pinEntry.length>=4) return;
+  pinEntry+=k;
+  if($('pinInput')) $('pinInput').value=pinEntry;
+  updatePinDots();
+  if(pinEntry.length===4){
+    setTimeout(()=>{
+      if(pinEntry===getDoctorPin()){ enterApp('doctor'); }
+      else{
+        pinAttempts++;
+        $('pinErr').style.display='block';
+        $('pinErr').textContent = pinAttempts>=3
+          ? 'Too many incorrect attempts. Please verify your PIN with hospital IT.'
+          : 'Incorrect PIN. Attempt '+pinAttempts+' of 3.';
+        pinEntry='';
+        updatePinDots();
+        if(pinAttempts>=3){ document.querySelectorAll('#pinPad button').forEach(b=>b.disabled=true); }
+      }
+    },150);
+  }
+}
+function enterApp(r){
+  role=r;
+  $('loginView').classList.add('hidden');
+  $('pinView').classList.add('hidden');
+  $('appView').classList.remove('hidden');
+  $('whoLabel').textContent = r==='doctor' ? 'Doctor' : 'Patient';
+  const tabs = r==='doctor'
+    ? [['assess','New Assessment'],['db','Patient Database']]
+    : [['assess','New Assessment'],['portal','My Reports']];
+  $('tabBar').innerHTML = tabs.map((t,i)=>'<button class="tab '+(i===0?'active':'')+'" data-tab="'+t[0]+'" onclick="showTab(\''+t[0]+'\')">'+t[1]+'</button>').join('');
+  $('doctorRibbon').classList.toggle('hidden', r!=='doctor');
+  $('tabBar').classList.toggle('hidden', r==='doctor');
+  showTab('assess');
+}
+
+function logout(){
+  role=null; pinEntry=''; pinAttempts=0;
+  document.querySelectorAll('#pinPad button').forEach(b=>b.disabled=false);
+  $('appView').classList.add('hidden');
+  $('pinView').classList.add('hidden');
+  $('doctorRibbon').classList.add('hidden');
+  $('tabBar').classList.remove('hidden');
+  $('loginView').classList.remove('hidden');
+}
+function showTab(name){
+  ['assess','db','portal'].forEach(t=>{ const el=$('tab-'+t); if(el) el.classList.toggle('hidden', t!==name); });
+  document.querySelectorAll('#tabBar .tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  if($('doctorNavAssess')) $('doctorNavAssess').classList.toggle('active', name==='assess');
+  if($('doctorNavDb')) $('doctorNavDb').classList.toggle('active', name==='db');
+  if(name==='db'){ renderDb(); updateGhSyncNote(); if(ghConfigured()) pullFromGitHub(false); }
+  if(name==='portal'){ $('portalResults').innerHTML=''; }
+}
+
+function updateBmiPreview(){const ht=val('p_ht'),wt=val('p_wt'),age=val('p_age'),sex=$('p_sex').value,box=$('p_bmi');if(!ht||!wt){box.value='';return;}const b=wt/((ht/100)**2);const c=b<18.5?'Underweight':b<23?'Healthy range':b<27.5?'Increased risk range':'High risk range';box.value=b.toFixed(1)+' - '+c+(age&&sex?' ('+age+' y, '+sex+')':'');}
+function cardiacTestsFor(b){return {Low:['Blood pressure review','Fasting lipid profile during routine preventive care','Blood glucose or HbA1c when clinically indicated'],Moderate:['Physician consultation','Blood pressure confirmation','Fasting lipid profile','Blood glucose or HbA1c','ECG if advised after clinical assessment'],High:['Early physician or cardiology consultation','Blood pressure confirmation','Fasting lipid profile','Blood glucose or HbA1c','ECG','Echocardiogram or stress testing only if the treating clinician considers it appropriate']}[b]||[];}
+function testsHtml(b){return '<h2>Suggested Cardiac Evaluation</h2><ul style="padding-left:18px">'+cardiacTestsFor(b).map(x=>'<li>'+x+'</li>').join('')+'</ul><p class="sub">Screening suggestions only. The treating clinician should select tests based on symptoms, examination and history.</p>';}
+/* ---------- Risk engine (no labs — WHO/ISH-style non-laboratory approximation) ---------- */
+function calcRisk(p){
+  let pts=0;
+  pts += p.age<50?0:p.age<55?2:p.age<60?4:p.age<65?6:p.age<70?8:10;
+  if(p.sex==='male') pts+=2;
+  pts += p.sbp<130?0:p.sbp<140?2:p.sbp<160?4:p.sbp<180?6:8;
+  if(p.htn) pts+=1;
+  if(p.bmi>=27.5) pts+=4; else if(p.bmi>=23) pts+=2;
+  if(p.smoke) pts+=4;
+  if(p.dm) pts+=4;
+  if(p.fh) pts+=2;
+  if(p.alcohol) pts+=1;
+  if(p.inactive) pts+=1;
+  let risk = Math.max(1, Math.min(55, pts*pts*0.085));
+  risk=Math.max(0,Math.min(95,risk));
+  if(p.known) risk=Math.max(risk,20);
+  let band = risk<10?'Low':risk<20?'Moderate':'High';
+  return {risk,band,method:'WHO/ISH-style non-laboratory risk approximation'};
+}
+function runAssessment(){
+  const err=$('p_err'); err.style.display='none';
+  const ht=val('p_ht'), wt=val('p_wt');
+  const bmi = (ht && wt) ? +(wt/((ht/100)*(ht/100))).toFixed(1) : null;
+  const p={
+    name:$('p_name').value.trim(), mobile:$('p_mobile').value.replace(/\D/g,''), pincode:$('p_pincode').value.replace(/\D/g,''),
+    age:val('p_age'), sex:$('p_sex').value, ht, wt, bmi,
+    htn:+$('p_htn').value, sbp:val('p_sbp'), dm:+$('p_dm').value, fh:+$('p_fh').value,
+    smoke:chk('p_smoke')?1:0, alcohol:chk('p_alcohol')?1:0, inactive:chk('p_inactive')?1:0,
+    known:chk('p_known')
+  };
+  const miss=[];
+  if(!p.name) miss.push('Name'); if(!/^\d{10}$/.test(p.mobile)) miss.push('Mobile Number (10 digits)'); if(!/^\d{6}$/.test(p.pincode)) miss.push('Pincode (6 digits)'); if(p.age===null||p.age<20||p.age>90) miss.push('Age 20-90');
+  if(!p.sex) miss.push('Sex'); if(!p.ht) miss.push('Height'); if(!p.wt) miss.push('Weight');
+  if(p.sbp===null||p.sbp<80||p.sbp>240) miss.push('Systolic BP');
+  if(miss.length){ err.textContent='Check these fields: '+miss.join(' · '); err.style.display='block'; return; }
+
+  const r=calcRisk(p);
+  const cls = r.band==='Low'?'b-low':r.band==='Moderate'?'b-mod':'b-high';
+  $('p_result').className='result '+cls;
+  $('p_result').innerHTML='<div class="band">'+r.band+' Risk</div><div class="pct">'+r.risk.toFixed(1)+'%</div><div class="note">10-yr risk · BMI '+p.bmi+' · '+r.method+'</div>';
+
+  const actions={
+    Low:['Reinforce heart-healthy diet, 150+ min/week activity, and tobacco avoidance.','No medication generally indicated on risk grounds alone.','Reassess in 3-5 years.'],
+    Moderate:['Discuss lifestyle change and medication review with a physician.','Target BP <130/80 mmHg; optimise weight and glycaemic control if diabetic.','Reassess in 1-2 years or sooner if new symptoms.'],
+    High:['Refer for clinical evaluation; medication likely indicated.','Aggressive BP, weight and glycaemic management; cardiology referral.','Structured follow-up within 4-8 weeks.']
+  };
+  $('p_action').innerHTML='<h2 style="margin-top:0">Recommendation</h2><ul style="margin:0;padding-left:18px;font-size:13.5px">'+
+    actions[r.band].map(a=>'<li style="margin-bottom:5px">'+a+'</li>').join('')+'</ul>'+testsHtml(r.band)+'<p class="sub"><b>Appointments:</b> Health City 0891-2867777 | Ramnagar 0891-2727272<br><b>Emergency:</b> 1066</p>'+
+    (p.known?'<p class="sub" style="margin-top:8px;color:var(--red)">Known established heart disease — secondary prevention protocol applies regardless of calculated percentage.</p>':'')+
+    '<div class="btnrow"><button class="flame" onclick="printLastReport()">Print / Save Report as PDF</button></div>';
+
+  lastResult={...p, risk:+r.risk.toFixed(1), band:r.band, method:r.method, date:new Date().toISOString().slice(0,10), id:'A'+Date.now()};
+  saveRecord();
+}
+function printLastReport(){
+  if(!lastResult){ alert('Please calculate the CVD risk first.'); return; }
+  printReport(lastResult.id);
+}
+
+function saveRecord(){
+  if(!lastResult) return;
+  const db=getDb(); db.unshift(lastResult); setDb(db);
+  if(ghConfigured()) pushRecordToGitHub(lastResult);
+}
+function clearForm(){
+  ['p_name','p_mobile','p_pincode','p_age','p_ht','p_wt','p_bmi','p_sbp'].forEach(i=>$(i).value='');
+  $('p_sex').value=''; $('p_htn').value='0'; $('p_dm').value='0'; $('p_fh').value='0';
+  ['p_smoke','p_alcohol','p_inactive','p_known'].forEach(i=>$(i).checked=false);
+  $('p_result').className='result b-idle';
+  $('p_result').innerHTML='<div class="band">Awaiting entry</div><div class="pct">—</div><div class="note">10-year cardiovascular risk</div>';
+  $('p_action').innerHTML='<p class="sub">Recommendations appear here after calculation.</p>';
+  lastResult=null;
+}
+
+/* ---------- Database (doctor only) ---------- */
+function renderDb(){
+  const db=getDb(); const rawQ=($('dbSearch').value||'').trim().toLowerCase(); const qMobile=rawQ.replace(/\D/g,'');
+  const filtered=db.filter(r=>!rawQ || (r.name||'').toLowerCase().includes(rawQ) || (r.mobile||'').includes(qMobile));
+  $('s_total').textContent=db.length;
+  $('s_low').textContent=db.filter(r=>r.band==='Low').length;
+  $('s_mod').textContent=db.filter(r=>r.band==='Moderate').length;
+  $('s_high').textContent=db.filter(r=>r.band==='High').length;
+  const tb=$('dbTable').querySelector('tbody');
+  tb.innerHTML = filtered.map(r=>{
+    const color=r.band==='Low'?'var(--green)':r.band==='Moderate'?'var(--amber)':'var(--red)';
+    return '<tr><td>'+r.date+'</td><td>'+r.name+'</td><td>'+(r.mobile||'—')+'</td><td>'+(r.pincode||'—')+'</td><td>'+r.age+'</td><td>'+r.sex+'</td><td>'+r.sbp+'</td><td>'+r.risk+'%</td>'+
+      '<td><span class="pill" style="background:'+color+'">'+r.band+'</span></td>'+
+      '<td><div style="display:flex;gap:6px"><button class="ghost" style="padding:4px 10px;font-size:12px" onclick="printReport(\''+r.id+'\')">PDF</button><button style="padding:4px 10px;font-size:12px;background:var(--red);border-color:var(--red)" onclick="deleteRecord(\''+r.id+'\')">Delete</button></div></td></tr>';
+  }).join('') || '<tr><td colspan="10" style="color:var(--muted)">No records yet.</td></tr>';
+}
+function deleteRecord(id){
+  const db=getDb();
+  const record=db.find(r=>r.id===id);
+  if(!record) return;
+  const label=record.name+' ('+(record.mobile||'No mobile')+')';
+  if(!confirm('Delete the record for '+label+'? This action cannot be undone.')) return;
+  setDb(db.filter(r=>r.id!==id));
+  renderDb();
+  if(ghConfigured()) pushDeleteToGitHub(id);
+}
+function exportExcel(){
+  const db=getDb();
+  if(!db.length){ alert('No records to export.'); return; }
+  const rows=db.map(r=>({Date:r.date,Name:r.name,Mobile:r.mobile||'',Pincode:r.pincode||'',Age:r.age,Sex:r.sex,Height_cm:r.ht,Weight_kg:r.wt,BMI:r.bmi,
+    Hypertension:r.htn?'Yes':'No',SBP:r.sbp,Diabetes:r.dm?'Yes':'No',FamilyHistory:r.fh?'Yes':'No',
+    Smoking:r.smoke?'Yes':'No',Alcohol:r.alcohol?'Yes':'No',Sedentary:r.inactive?'Yes':'No',
+    RiskPercent:r.risk,RiskBand:r.band,Method:r.method}));
+  const ws=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Patients');
+  XLSX.writeFile(wb,'Apollo_Vizag_Cardiac_Patients_'+Date.now()+'.xlsx');
+}
+
+/* ---------- Patient portal ---------- */
+function renderPortal(){
+  const q=($('portalSearch').value||'').toLowerCase().trim();
+  const box=$('portalResults');
+  if(!q){ box.innerHTML='<p class="sub">Enter a name or UHID above.</p>'; return; }
+  const db=getDb().filter(r=>r.name.toLowerCase().includes(q) || (r.mobile||'').includes(q));
+  if(!db.length){ box.innerHTML='<div class="card">No reports found for "'+q+'".</div>'; return; }
+  box.innerHTML=db.map(r=>{
+    const color=r.band==='Low'?'var(--green)':r.band==='Moderate'?'var(--amber)':'var(--red)';
+    return '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'+
+      '<div><b>'+r.name+'</b> · '+r.date+' · Age '+r.age+'<br><span class="pill" style="background:'+color+'">'+r.band+' — '+r.risk+'%</span></div>'+
+      '<button onclick="printReport(\''+r.id+'\')">View / Print PDF</button></div></div>';
+  }).join('');
+}
+
+/* ---------- Printable PDF report ---------- */
+function printReport(id){
+  const r=getDb().find(x=>x.id===id);
+  if(!r) return;
+  const color=r.band==='Low'?'var(--green)':r.band==='Moderate'?'var(--amber)':'var(--red)';
+  const html='<div class="card" style="max-width:700px;margin:0 auto">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--teal);padding-bottom:10px;margin-bottom:14px">'+
+      '<div style="display:flex;align-items:center;gap:12px"><img src="data:image/png;base64,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" alt="Apollo Hospitals" style="height:52px;width:52px;object-fit:contain;border-radius:6px"><div><h1 style="margin:0;font-size:18px;color:var(--teal-dark)">Apollo Hospitals Visakhapatnam</h1><p class="sub" style="margin:2px 0 0">Cardiac Risk Assessment Report</p></div></div>'+
+      '<div style="font-size:12px;color:var(--muted);text-align:right">Report date<br><b>'+r.date+'</b></div></div>'+
+    '<table style="margin-bottom:14px"><tbody>'+
+      '<tr><th>Name</th><td>'+r.name+'</td><th>Mobile</th><td>'+(r.mobile||'—')+'</td></tr>'+
+      '<tr><th>Pincode</th><td>'+(r.pincode||'—')+'</td><th>Age / Sex</th><td>'+r.age+' / '+r.sex+'</td></tr>'+
+      '<tr><th>Height / Weight</th><td>'+r.ht+' cm / '+r.wt+' kg</td><th>BMI</th><td>'+r.bmi+'</td></tr>'+
+      '<tr><th>Systolic BP</th><td>'+r.sbp+' mmHg</td><th>Hypertension</th><td>'+(r.htn?'Yes':'No')+'</td></tr>'+
+      '<tr><th>Diabetes</th><td>'+(r.dm?'Yes':'No')+'</td><th>Family history</th><td>'+(r.fh?'Yes':'No')+'</td></tr>'+
+      '<tr><th>Habits</th><td colspan="3">'+([r.smoke?'Smoking':'',r.alcohol?'Alcohol':'',r.inactive?'Sedentary':''].filter(Boolean).join(', ')||'None reported')+'</td></tr>'+
+    '</tbody></table>'+
+    '<div class="result" style="background:'+color+'"><div class="band">'+r.band+' Risk</div><div class="pct">'+r.risk+'%</div><div class="note">10-year cardiovascular risk · '+r.method+'</div></div>'+
+    '<div style="border:1px solid var(--line);padding:12px;margin:12px 0"><h2>Suggested Cardiac Evaluation</h2><ul>'+cardiacTestsFor(r.band).map(x=>'<li>'+x+'</li>').join('')+'</ul><p class="sub">Test selection must be confirmed by the treating clinician.</p></div>'+
+    '<p><b>Appointments:</b> Apollo Hospitals Health City 0891-2867777 | Ramnagar 0891-2727272<br><b>Emergency:</b> Call 1066</p>'+
+    '<p class="disc" style="font-weight:700;color:var(--teal-dark)">This is an AI-based WHO CVD non-laboratory risk screening report. Kindly consult Apollo Hospitals Visakhapatnam for clinical interpretation.</p>'+
+    '<div class="btnrow noprint"><button onclick="window.print()">Print / Save as PDF</button><button class="ghost" onclick="closeReport()">Close</button></div></div>';
+  $('reportView').innerHTML=html;
+  document.querySelectorAll('.wrap > div, .wrap > details').forEach(d=>{ if(d.id!=='reportView') d.classList.add('hidden'); });
+  $('reportView').classList.remove('hidden');
+}
+function renderPageQr(){
+  const box=$('pageQr');
+  if(!box || typeof QRCode==='undefined') return;
+  box.innerHTML='';
+  new QRCode(box,{text:window.location.href,width:150,height:150,colorDark:'#023340',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+}
+window.addEventListener('load',renderPageQr);
+window.addEventListener('load',seedFromEmbedded);
+
+function closeReport(){
+  $('reportView').classList.add('hidden');
+  $('doctorRibbon').classList.toggle('hidden', role!=='doctor');
+  $('tabBar').classList.toggle('hidden', role==='doctor');
+  showTab('assess');
+  ['tab-assess'].forEach(t=>$(t).classList.remove('hidden'));
+}
+</script>
+</body>
+</html>
